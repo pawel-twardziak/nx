@@ -9,6 +9,9 @@ export interface AffectedProjectGraphContext {
   projectGraphNodes: Record<string, ProjectGraphProjectNode>;
   nxJson: NxJsonConfiguration<any>;
   touchedProjects: string[];
+  options?: {
+    onlyAffectedByTouched?: boolean;
+  };
 }
 
 export interface TouchedProjectLocator<T extends Change = Change> {

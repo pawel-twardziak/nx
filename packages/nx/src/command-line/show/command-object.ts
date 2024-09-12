@@ -19,6 +19,7 @@ export type ShowProjectsOptions = NxShowArgs & {
   base?: string;
   head?: string;
   affected?: boolean;
+  onlyAffectedByTouched?: boolean;
   type?: ProjectGraphProjectNode['type'];
   projects?: string[];
   withTarget?: string[];
