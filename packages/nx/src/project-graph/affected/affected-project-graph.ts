@@ -17,6 +17,9 @@ import { getTouchedProjectsFromProjectGlobChanges } from './locators/project-glo
 export async function filterAffected(
   graph: ProjectGraph,
   touchedFiles: FileChange[],
+  nxArgs: {
+    onlyAffectedByTouched?: boolean;
+  },
   nxJson: NxJsonConfiguration = readNxJson(),
   packageJson: any = readPackageJson()
 ): Promise<ProjectGraph> {
@@ -40,10 +43,18 @@ export async function filterAffected(
     touchedProjects.push(...projects);
   }
 
+  /**
+   * NxArgs.onlyAffectedByTouched has an advantage over NxJson.onlyAffectedByTouched
+   */
+  const onlyAffectedByTouched = Boolean(
+    nxArgs.onlyAffectedByTouched ?? nxJson.onlyAffectedByTouched
+  );
+
   return filterAffectedProjects(graph, {
     projectGraphNodes: graph.nodes,
     nxJson,
     touchedProjects,
+    options: onlyAffectedByTouched ? { onlyAffectedByTouched } : void 0,
   });
 }
 
@@ -60,10 +71,14 @@ function filterAffectedProjects(
   };
   const reversed = reverse(graph);
   ctx.touchedProjects.forEach((p) => {
-    addAffectedNodes(p, reversed, result, new Set());
+    addAffectedNodes(p, reversed, result, new Set(), {
+      onlyAffectedByTouched: ctx.options?.onlyAffectedByTouched ? p : void 0,
+    });
   });
   ctx.touchedProjects.forEach((p) => {
-    addAffectedDependencies(p, reversed, result, new Set());
+    addAffectedDependencies(p, reversed, result, new Set(), {
+      onlyAffectedByTouched: ctx.options?.onlyAffectedByTouched ? p : void 0,
+    });
   });
   return result;
 }
@@ -72,7 +87,8 @@ function addAffectedNodes(
   startingProject: string,
   reversed: ProjectGraph,
   result: ProjectGraph,
-  visited: Set<string>
+  visited: Set<string>,
+  options?: { onlyAffectedByTouched?: string }
 ): void {
   if (visited.has(startingProject)) return;
   const reversedNode = reversed.nodes[startingProject];
@@ -87,23 +103,36 @@ function addAffectedNodes(
   } else {
     result.externalNodes[startingProject] = reversedExternalNode;
   }
-  reversed.dependencies[startingProject]?.forEach(({ target }) =>
-    addAffectedNodes(target, reversed, result, visited)
-  );
+  reversed.dependencies[startingProject]?.forEach(({ target, source }) => {
+    if (typeof options?.onlyAffectedByTouched === 'string') {
+      if (source === options.onlyAffectedByTouched) {
+        addAffectedNodes(target, reversed, result, visited, options);
+      }
+    } else {
+      addAffectedNodes(target, reversed, result, visited, options);
+    }
+  });
 }
 
 function addAffectedDependencies(
   startingProject: string,
   reversed: ProjectGraph,
   result: ProjectGraph,
-  visited: Set<string>
+  visited: Set<string>,
+  options?: { onlyAffectedByTouched?: string }
 ): void {
   if (visited.has(startingProject)) return;
   visited.add(startingProject);
   if (reversed.dependencies[startingProject]) {
-    reversed.dependencies[startingProject].forEach(({ target }) =>
-      addAffectedDependencies(target, reversed, result, visited)
-    );
+    reversed.dependencies[startingProject].forEach(({ target, source }) => {
+      if (typeof options?.onlyAffectedByTouched === 'string') {
+        if (source === options.onlyAffectedByTouched) {
+          addAffectedDependencies(target, reversed, result, visited, options);
+        }
+      } else {
+        addAffectedDependencies(target, reversed, result, visited, options);
+      }
+    });
     reversed.dependencies[startingProject].forEach(
       ({ type, source, target }) => {
         // Since source and target was reversed,

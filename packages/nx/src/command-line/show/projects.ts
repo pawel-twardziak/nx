@@ -37,7 +37,7 @@ export async function showProjectsHandler(
   // Affected touches dependencies so it needs to be processed first.
   if (args.affected) {
     const touchedFiles = await getTouchedFiles(nxArgs);
-    graph = await getAffectedGraph(touchedFiles, nxJson, graph);
+    graph = await getAffectedGraph(touchedFiles, nxJson, graph, args);
   }
 
   const filter = filterNodes((node) => {
@@ -100,9 +100,15 @@ function getGraphNodesMatchingPatterns(
 function getAffectedGraph(
   touchedFiles: FileChange[],
   nxJson: NxJsonConfiguration<'*' | string[]>,
-  graph: ProjectGraph
+  graph: ProjectGraph,
+  args: ShowProjectsOptions
 ) {
-  return filterAffected(graph, touchedFiles, nxJson);
+  return filterAffected(
+    graph,
+    touchedFiles,
+    { onlyAffectedByTouched: args.onlyAffectedByTouched },
+    nxJson
+  );
 }
 
 async function getTouchedFiles(nxArgs: NxArgs): Promise<FileChange[]> {

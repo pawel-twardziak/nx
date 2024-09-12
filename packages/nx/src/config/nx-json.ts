@@ -367,6 +367,8 @@ export interface NxJsonConfiguration<T = '*' | string[]> {
    */
   defaultBase?: string;
 
+  onlyAffectedByTouched?: boolean;
+
   /**
    * Where new apps + libs should be placed
    */

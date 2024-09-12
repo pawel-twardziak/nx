@@ -10,8 +10,15 @@ import {
   withTargetAndConfigurationOption,
 } from '../yargs-utils/shared-options';
 import { handleErrors } from '../../utils/params';
+import { NxArgs } from '../../utils/command-line-utils';
 
-export const yargsAffectedCommand: CommandModule = {
+export type AffectedOptions = NxArgs & {
+  onlyAffectedByTouched?: boolean;
+  target?: string;
+  __overrides_unparsed__: string[];
+};
+
+export const yargsAffectedCommand: CommandModule<AffectedOptions> = {
   command: 'affected',
   describe: 'Run target for affected projects.',
   builder: (yargs) =>
@@ -50,7 +57,7 @@ export const yargsAffectedCommand: CommandModule = {
   },
 };
 
-export const yargsAffectedTestCommand: CommandModule = {
+export const yargsAffectedTestCommand: CommandModule<AffectedOptions> = {
   command: 'affected:test',
   describe: false,
   builder: (yargs) =>
@@ -74,7 +81,7 @@ export const yargsAffectedTestCommand: CommandModule = {
   },
 };
 
-export const yargsAffectedBuildCommand: CommandModule = {
+export const yargsAffectedBuildCommand: CommandModule<AffectedOptions> = {
   command: 'affected:build',
   describe: false,
   builder: (yargs) =>
@@ -98,7 +105,7 @@ export const yargsAffectedBuildCommand: CommandModule = {
   },
 };
 
-export const yargsAffectedLintCommand: CommandModule = {
+export const yargsAffectedLintCommand: CommandModule<AffectedOptions> = {
   command: 'affected:lint',
   describe: false,
   builder: (yargs) =>
@@ -122,7 +129,7 @@ export const yargsAffectedLintCommand: CommandModule = {
   },
 };
 
-export const yargsAffectedE2ECommand: CommandModule = {
+export const yargsAffectedE2ECommand: CommandModule<AffectedOptions> = {
   command: 'affected:e2e',
   describe: false,
   builder: (yargs) =>

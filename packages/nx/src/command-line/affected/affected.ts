@@ -2,7 +2,6 @@ import { calculateFileChanges } from '../../project-graph/file-utils';
 import { runCommand } from '../../tasks-runner/run-command';
 import { output } from '../../utils/output';
 import { connectToNxCloudIfExplicitlyAsked } from '../connect/connect-to-nx-cloud';
-import type { NxArgs } from '../../utils/command-line-utils';
 import {
   parseFiles,
   readGraphFileFromGraphArg,
@@ -22,11 +21,11 @@ import { workspaceConfigurationCheck } from '../../utils/workspace-configuration
 import { findMatchingProjects } from '../../utils/find-matching-projects';
 import { generateGraph } from '../graph/graph';
 import { allFileData } from '../../utils/all-file-data';
-import { NX_PREFIX, logger } from '../../utils/logger';
+import { AffectedOptions } from './command-object';
 
 export async function affected(
   command: 'graph' | 'print-affected' | 'affected',
-  args: { [k: string]: any },
+  args: AffectedOptions,
   extraTargetDependencies: Record<
     string,
     (TargetDependencyConfig | string)[]
@@ -57,12 +56,18 @@ export async function affected(
   await connectToNxCloudIfExplicitlyAsked(nxArgs);
 
   const projectGraph = await createProjectGraphAsync({ exitOnError: true });
-  const projects = await getAffectedGraphNodes(nxArgs, projectGraph);
+  const projects = await getAffectedGraphNodes(
+    { ...nxArgs, ...overrides },
+    projectGraph
+  );
 
   try {
     switch (command) {
       case 'affected': {
-        const projectsWithTarget = allProjectsWithTarget(projects, nxArgs);
+        const projectsWithTarget = allProjectsWithTarget(projects, {
+          ...nxArgs,
+          ...overrides,
+        });
         if (nxArgs.graph) {
           const projectNames = projectsWithTarget.map((t) => t.name);
           const file = readGraphFileFromGraphArg(nxArgs);
@@ -102,7 +107,7 @@ export async function affected(
 }
 
 export async function getAffectedGraphNodes(
-  nxArgs: NxArgs,
+  nxArgs: AffectedOptions,
   projectGraph: ProjectGraph
 ): Promise<ProjectGraphProjectNode[]> {
   let affectedGraph = nxArgs.all
@@ -113,7 +118,8 @@ export async function getAffectedGraphNodes(
           parseFiles(nxArgs).files,
           await allFileData(),
           nxArgs
-        )
+        ),
+        { onlyAffectedByTouched: nxArgs.onlyAffectedByTouched }
       );
 
   if (nxArgs.exclude) {
@@ -131,7 +137,7 @@ export async function getAffectedGraphNodes(
 
 function allProjectsWithTarget(
   projects: ProjectGraphProjectNode[],
-  nxArgs: NxArgs
+  nxArgs: AffectedOptions
 ) {
   return projects.filter((p) =>
     nxArgs.targets.find((target) => projectHasTarget(p, target))
